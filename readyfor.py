@@ -11,60 +11,79 @@ import json
 import syslog
 
 
-# 指定した記事を開き，取り消し済みならNoneを返す
-def urlopen(url):
+# 指定したURLのページを表示する
+def printProject(url):
 	try:
 		resp = urllib.request.urlopen(url)
 	except urllib.error.HTTPError as e:
-		return None
-	else:
-		return resp
+		return False
 
-# 指定したURLのページを表示する
-def printProject(url):
-	resp = urllib.request.urlopen(url)
 	src = resp.read()
 	soup = BeautifulSoup(src, 'lxml')
-	article = soup.find("article", class_="Page-body")
-        # 終了プロジェクト
-	if article is None:
+
+	if soup is None:
 	    return False
 
 	# プロジェクト名
-	pjname = article.find("h1")
+	pjname = soup.find("h1")
 
 	# タグは:で結合
-	tags = article.find("ul", class_="tags")
+	tags = soup.find("ul", class_="tags")
 	tagstext = tags.find_all("a")
 	strs = []
 	for it in tagstext:
 		strs.append(it.text)
 	taglist = ':'.join(strs)
 
+
 	# 金額
-	total = article.find("dd", class_="Project-visual__condition-dd is-sum")
+	total = soup.find("dd", class_="Project-visual__condition-dd is-sum")
+	total = total.text.replace("円", "").replace(",", "")
+
+
+	# 目標金額・支援者数
+	patrons = soup.find_all("dd", class_="Project-visual__condition-dd u-font-en")
+	#patrons = soup.find("dl", class_="Project-visual__condition u-fs_16")
+	#patron = patrons.find("dd", class_="Project-visual__condition-dd u-font-en")
+	#patron = patrons[1].text.replace("人","").replace(",","")
+	#patron = patron.text.replace("人", "").replace(",", "")
+
+	# 見出し
+	title = soup.find_all("dt", class_="Project-visual__condition-dt")
+	if (title[1].text[-2:] == "者数"):
+		patron = patrons[0].text.replace("人", "").replace(",", "")
+	elif (title[2].text[-2:] == "者数"):
+		patron = patrons[1].text.replace("人", "").replace(",", "")
+	else:
+		patron = "0"
 
 	# 日
-	datetime = article.find("span", class_="u-fs_14")
+	datetime = soup.find("span", class_="u-fs_14")
+
+	if datetime is None:
+		return False
+
 	datestr = datetime.text
 	datestr = datestr.replace("このプロジェクトは ", "")
 	datestr = datestr.replace(" に成立しました。", "")
 
-
 	print(url + ",\"" + pjname.text + "\",\"" + taglist + "\",\"" + 
-	      total.text + "\",\"", datestr+ "\"")
+	      patron + "\",\"" + total + "\",\"", datestr+ "\"")
 
 	# 現在時刻
 	# now = datetime.datetime.now()
 	# print(now.strftime("%Y/%m/%d %H:%M:%S"))
 	
 	return True
-
+# printProject("https://readyfor.jp/projects/okinawa_toy_museum")
+# printProject("https://readyfor.jp/projects/tech-geopolitics")
+# printProject("https://readyfor.jp/projects/satoyama2017")
+# printProject("https://readyfor.jp/projects/tmoriondrums")
+# sys,exit(1)
 
 # readyfor
 url = 'https://readyfor.jp/projects/successful?successful_sort_query=successful_desc_accomplished_money'
 urlbase = 'https://readyfor.jp'
-
 # トップページの情報を取得
 resp = urllib.request.urlopen(url)
 
