@@ -26,6 +26,9 @@ def printProject(url):
 	src = resp.read()
 	soup = BeautifulSoup(src, 'lxml')
 	article = soup.find("article", class_="Page-body")
+        # 終了プロジェクト
+	if article is None:
+	    return False
 
 	# プロジェクト名
 	pjname = article.find("h1")
